@@ -7,14 +7,42 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/jessevdk/go-flags"
 	fcgiclient "github.com/tomasen/fcgi_client"
 )
 
+type Options struct {
+	Config         string        `short:"c" long:"config" env:"CONFIG" default:"config.yml" description:"config file"`
+	Listen         string        `short:"l" long:"listen" env:"LISTEN_SERVER" default:":8080" description:"listen address"`
+	Secret         string        `short:"s" long:"secret" env:"SECRET_KEY" default:"123"`
+	PinSize        int           `long:"pinszie" env:"PIN_SIZE" default:"5" description:"pin size"`
+	MaxExpire      time.Duration `long:"expire" env:"MAX_EXPIRE" default:"24h" description:"max lifetime"`
+	MaxPinAttempts int           `long:"pinattempts" env:"PIN_ATTEMPTS" default:"3" description:"max attempts to enter pin"`
+	WebRoot        string        `long:"web" env:"WEB" default:"/app/public" description:"web ui location"`
+	IndexFile      string        `long:"index" env:"INDEX_FILE" default:"index.php" description:"index file"`
+	Dbg            bool          `long:"dbg" env:"DEBUG" description:"show debug info"`
+	HttpTimeout    time.Duration `long:"http-timeout" env:"HTTP_TIMEOUT" default:"30s" description:"http client timeout"`
+}
+
+var revision string
+
 func main() {
+
+	log.Printf("[INFO] Micro tracker praser: %s\n", revision)
+
+	var opts Options
+	parser := flags.NewParser(&opts, flags.Default)
+	_, err := parser.Parse()
+	if err != nil {
+		log.Printf("[FATAL] %v", err)
+		os.Exit(1)
+	}
+
 	// Налаштування
-	root := "/app/public"
-	indexFile := "index.php"
+	root := opts.WebRoot
+	indexFile := opts.IndexFile
 	maxBodySize := int64(8 << 20) // 8MB
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
